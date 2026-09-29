@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduGenie — AI Learning Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-workspace: #131314;
+            --bg-surface: #1e1f20;
+            --bg-surface-elevated: #282a2c;
+            --bg-sidebar: #0e0e10;
+            --border-subtle: #333538;
+            --border-highlight: #444746;
+            --primary-accent: #a8c7fa;
+            --primary-gradient: linear-gradient(135deg, #a8c7fa 0%, #d3e3fd 100%);
+            --spark-color: #7cacf8;
+            --text-primary: #e3e3e3;
+            --text-secondary: #c4c7c5;
+            --text-muted: #8e918f;
+            --success-bg: rgba(74, 222, 128, 0.12);
+            --success-border: #22c55e;
+            --success-text: #86efac;
+            --error-bg: rgba(248, 113, 113, 0.12);
+            --error-border: #ef4444;
+            --error-text: #fca5a5;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background-color: var(--bg-workspace); color: var(--text-primary); overflow: hidden; height: 100vh; }
+        .app-layout { display: flex; height: 100vh; width: 100vw; }
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; padding: 1rem; flex-shrink: 0; }
+        .brand { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.5rem 1rem 0.5rem; }
+        .brand-spark { font-size: 1.3rem; color: var(--spark-color); }
+        .brand-title { display: block; font-size: 1.1rem; font-weight: 700; color: #ffffff; }
+        .brand-subtitle { display: block; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .new-chat-btn { background: transparent; border: 1px solid var(--border-highlight); color: var(--text-primary); padding: 0.65rem 1rem; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 600; cursor: pointer; text-align: left; margin-bottom: 1.25rem; font-family: inherit; }
+        .new-chat-btn:hover { background-color: var(--bg-surface); }
+        .sidebar-section-title { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0.5rem 0.4rem 0.5rem; }
+        .mode-nav { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; overflow-y: auto; }
+        .nav-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.65rem 0.75rem; border-radius: var(--radius-sm); background: transparent; border: 1px solid transparent; color: var(--text-secondary); cursor: pointer; text-align: left; font-family: inherit; transition: 0.15s; }
+        .nav-item:hover { background-color: var(--bg-surface); color: var(--text-primary); }
+        .nav-item.active { background-color: var(--bg-surface); border-color: var(--border-highlight); color: var(--primary-accent); }
+        .nav-icon { font-size: 1rem; }
+        .nav-label strong { display: block; font-size: 0.85rem; font-weight: 600; }
+        .nav-label small { display: block; font-size: 0.7rem; color: var(--text-muted); }
+        .sidebar-footer { padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); }
+        .status-indicator { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-muted); }
+        .pulse-dot { width: 7px; height: 7px; background-color: #22c55e; border-radius: 50%; box-shadow: 0 0 6px rgba(34, 197, 94, 0.8); }
+        .workspace { flex: 1; display: flex; flex-direction: column; height: 100vh; background-color: var(--bg-workspace); position: relative; overflow: hidden; }
+        .workspace-header { height: 50px; display: flex; align-items: center; padding: 0 1.75rem; border-bottom: 1px solid var(--border-subtle); background: rgba(19, 19, 20, 0.85); flex-shrink: 0; }
+        .header-breadcrumbs { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
+        .header-breadcrumbs .sep { opacity: 0.4; }
+        .current-mode { color: var(--text-primary); font-weight: 600; }
+        .content-scroll { flex: 1; overflow-y: auto; padding: 2rem 1.5rem 1rem 1.5rem; display: flex; justify-content: center; }
+        .thread-container { width: 100%; max-width: 780px; display: flex; flex-direction: column; gap: 1.75rem; padding-bottom: 3rem; }
+        .welcome-hero { text-align: center; margin: 3.5rem auto 1rem auto; max-width: 580px; }
+        .hero-spark { font-size: 2rem; color: var(--spark-color); margin-bottom: 1rem; }
+        .hero-heading { font-size: 1.85rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem; }
+        .hero-subtext { font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 1.75rem; }
+        .suggestion-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
+        .chip { background-color: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); padding: 0.55rem 0.95rem; border-radius: 9999px; font-size: 0.82rem; cursor: pointer; font-family: inherit; }
+        .chip:hover { background-color: var(--bg-surface-elevated); color: var(--text-primary); }
+        .chat-turn { display: flex; gap: 1.1rem; width: 100%; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+        .user-avatar { background-color: #3b82f6; color: #ffffff; }
+        .ai-avatar { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #ffffff; }
+        .turn-body { flex: 1; min-width: 0; }
+        .turn-author { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-muted); }
+        .action-btn { background: transparent; border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; }
+        .user-text-bubble { background-color: var(--bg-surface); padding: 0.8rem 1.1rem; border-radius: var(--radius-md); color: var(--text-primary); line-height: 1.5; border: 1px solid var(--border-subtle); font-size: 0.94rem; }
+        .ai-text-bubble { background-color: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 1.25rem 1.4rem; border-radius: var(--radius-lg); line-height: 1.7; white-space: pre-wrap; word-break: break-word; font-size: 0.94rem; color: var(--text-primary); }
+        .quiz-thread { display: flex; flex-direction: column; gap: 1.1rem; }
+        .score-pill { font-size: 0.75rem; padding: 0.25rem 0.65rem; border-radius: 9999px; background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); }
+        .score-perfect { background-color: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+        .score-done { background-color: rgba(234, 179, 8, 0.15); border-color: #eab308; color: #fde047; }
+        .quiz-card { background-color: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.25rem 1.4rem; }
+        .quiz-q-header { margin-bottom: 0.85rem; }
+        .q-number { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--primary-accent); margin-bottom: 0.25rem; }
+        .q-title { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+        .quiz-options-group { display: flex; flex-direction: column; gap: 0.45rem; }
+        .quiz-option-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.9rem; background-color: var(--bg-workspace); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); cursor: pointer; }
+        .quiz-option-item input[type="radio"] { accent-color: #3b82f6; width: 15px; height: 15px; }
+        .option-text { font-size: 0.9rem; color: var(--text-secondary); }
+        .feedback-banner { margin-top: 0.85rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; }
+        .banner-correct { background-color: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
+        .banner-wrong { background-color: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text); }
+        .explanation-box { margin-top: 0.55rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); padding: 0.65rem; background-color: var(--bg-workspace); border-radius: var(--radius-sm); }
+        .quiz-actions { display: flex; justify-content: flex-end; margin-top: 0.4rem; }
+        .submit-quiz-btn { background: var(--primary-gradient); color: #0b0f19; border: none; font-weight: 700; padding: 0.65rem 1.25rem; border-radius: var(--radius-md); cursor: pointer; font-family: inherit; font-size: 0.88rem; }
+        .prompt-dock { position: relative; flex-shrink: 0; width: 100%; padding: 0.75rem 1.5rem 1.25rem 1.5rem; background: var(--bg-workspace); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; }
+        .dock-form { width: 100%; max-width: 780px; }
+        .dock-wrapper { background-color: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 0.5rem 0.75rem 0.5rem 1.1rem; display: flex; align-items: center; gap: 0.75rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35); }
+        .dock-wrapper textarea { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 0.94rem; font-family: inherit; resize: none; outline: none; max-height: 160px; line-height: 1.5; }
+        .dock-wrapper textarea::placeholder { color: var(--text-muted); }
+        .send-btn { width: 34px; height: 34px; border-radius: var(--radius-sm); background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .send-btn:hover { background-color: var(--primary-accent); color: #0b0f19; }
+        .dock-disclaimer { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.45rem; text-align: center; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-spark">✦</div>
+                <div class="brand-text">
+                    <span class="brand-title">EduGenie</span>
+                    <span class="brand-subtitle">Gemini Intelligence</span>
+                </div>
+            </div>
+
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <span>+ New Learning Session</span>
+            </button>
+
+            <div class="sidebar-section-title">Modes</div>
+            <nav class="mode-nav">
+                <button type="button" class="nav-item active" onclick="setMode('qa', this)">
+                    <span class="nav-icon">💬</span>
+                    <div class="nav-label">
+                        <strong>Q&A Assistant</strong>
+                        <small>Direct academic queries</small>
+                    </div>
+                </button>
+                <button type="button" class="nav-item" onclick="setMode('explain', this)">
+                    <span class="nav-icon">💡</span>
+                    <div class="nav-label">
+                        <strong>Concept Explainer</strong>
+                        <small>Intuitive analogies</small>
+                    </div>
+                </button>
+                <button type="button" class="nav-item" onclick="setMode('summarize', this)">
+                    <span class="nav-icon">📝</span>
+                    <div class="nav-label">
+                        <strong>Smart Summarizer</strong>
+                        <small>Key revision notes</small>
+                    </div>
+                </button>
+                <button type="button" class="nav-item" onclick="setMode('path', this)">
+                    <span class="nav-icon">🗺️</span>
+                    <div class="nav-label">
+                        <strong>Learning Roadmap</strong>
+                        <small>Beginner to Advanced</small>
+                    </div>
+                </button>
+                <button type="button" class="nav-item" onclick="setMode('quiz', this)">
+                    <span class="nav-icon">🎯</span>
+                    <div class="nav-label">
+                        <strong>Knowledge Quiz</strong>
+                        <small>Interactive MCQs</small>
+                    </div>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span>Gemini Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div class="header-breadcrumbs">
+                    <span>EduGenie</span>
+                    <span class="sep">/</span>
+                    <span class="current-mode" id="mode-display-title">Q&A Assistant</span>
+                </div>
+            </header>
+
+            <div class="content-scroll" id="chat-scroll">
+                <div class="thread-container" id="thread-container">
+                    
+                    <div class="welcome-hero" id="welcome-hero">
+                        <div class="hero-spark">✦</div>
+                        <h1 class="hero-heading">What are we exploring today?</h1>
+                        <p class="hero-subtext">Choose a capability on the left or tap a starter prompt below.</p>
+                        
+                        <div class="suggestion-chips">
+                            <button type="button" class="chip" onclick="quickPrompt('qa', 'Explain how Docker containers differ from Virtual Machines with a concrete analogy.')">
+                                🐳 Docker vs VM Analogy
+                            </button>
+                            <button type="button" class="chip" onclick="quickPrompt('quiz', 'NestJS architecture: controllers, providers, dependency injection, and modules.')">
+                                ⚡ NestJS Practice Quiz
+                            </button>
+                            <button type="button" class="chip" onclick="quickPrompt('path', 'Full-stack development using Spring Boot and React.')">
+                                🚀 Spring Boot Roadmap
+                            </button>
+                        </div>
+                    </div>
+
+                    {% if previous_input %}
+                    <div class="chat-turn user-turn">
+                        <div class="avatar user-avatar">U</div>
+                        <div class="turn-body">
+                            <div class="turn-author">You</div>
+                            <div class="user-text-bubble">{{ previous_input }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if result %}
+                    <div class="chat-turn ai-turn">
+                        <div class="avatar ai-avatar">✦</div>
+                        <div class="turn-body">
+                            <div class="turn-author">
+                                <span>EduGenie</span>
+                                <button class="action-btn" type="button" onclick="copyText(this)">📋 Copy</button>
+                            </div>
+                            <div class="ai-text-bubble">{{ result }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if quiz %}
+                    <div class="chat-turn ai-turn">
+                        <div class="avatar ai-avatar">✦</div>
+                        <div class="turn-body">
+                            <div class="turn-author">
+                                <span>EduGenie Quiz Assessment</span>
+                                <span class="score-pill" id="score-badge">Complete all questions</span>
+                            </div>
+
+                            <form id="quiz-form" onsubmit="evaluateQuiz(event)" class="quiz-thread">
+                                {% for q in quiz %}
+                                {% set outer_loop_index = loop.index %}
+                                <div class="quiz-card" data-correct="{{ q.answer }}">
+                                    <div class="quiz-q-header">
+                                        <span class="q-number">Question {{ outer_loop_index }}</span>
+                                        <p class="q-title">{{ q.question }}</p>
+                                    </div>
+                                    <div class="quiz-options-group">
+                                        {% for opt in q.options %}
+                                        <label class="quiz-option-item">
+                                            <input type="radio" name="question_{{ outer_loop_index }}" value="{{ opt }}" required>
+                                            <span class="option-text">{{ opt }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="feedback-banner hidden"></div>
+                                    {% if q.explanation %}
+                                    <div class="explanation-box hidden">
+                                        <strong>Explanation:</strong> {{ q.explanation }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                                <div class="quiz-actions">
+                                    <button type="submit" class="submit-quiz-btn" id="quiz-btn">Submit Answers & Score</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+            <div class="prompt-dock">
+                <form id="interaction-form" action="/process" method="post" class="dock-form" onsubmit="showLoading()">
+                    <input type="hidden" name="task" id="active-task-input" value="{{ selected_task or 'qa' }}">
+                    
+                    <div class="dock-wrapper">
+                        <textarea 
+                            id="user_input" 
+                            name="user_input" 
+                            rows="1" 
+                            placeholder="Ask a question or paste notes..." 
+                            required 
+                            oninput="autoResize(this)"
+                        ></textarea>
+                        
+                        <button type="submit" class="send-btn" id="send-button" title="Send">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+                <div class="dock-disclaimer">EduGenie AI can make mistakes. Verify critical facts. Press Enter to send.</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const taskTitles = {
+            'qa': 'Q&A Assistant',
+            'explain': 'Concept Explainer',
+            'summarize': 'Smart Summarizer',
+            'path': 'Learning Roadmap',
+            'quiz': 'Knowledge Quiz'
+        };
+
+        function setMode(taskKey, btnElement) {
+            document.querySelectorAll('.mode-nav .nav-item').forEach(el => el.classList.remove('active'));
+            if (btnElement) btnElement.classList.add('active');
+            document.getElementById('active-task-input').value = taskKey;
+            document.getElementById('mode-display-title').innerText = taskTitles[taskKey] || 'Assistant';
+            
+            const ta = document.getElementById('user_input');
+            if (taskKey === 'quiz') ta.placeholder = "Enter topic or paste text to generate quiz MCQs...";
+            else if (taskKey === 'summarize') ta.placeholder = "Paste long lecture text or chapter notes...";
+            else if (taskKey === 'path') ta.placeholder = "What do you want to learn step-by-step?";
+            else ta.placeholder = "Ask any academic or technical question...";
+            ta.focus();
+        }
+
+        function quickPrompt(taskKey, text) {
+            const navBtn = document.querySelector(`.mode-nav .nav-item[onclick*="'${taskKey}'"]`);
+            setMode(taskKey, navBtn);
+            document.getElementById('user_input').value = text;
+            document.getElementById('interaction-form').submit();
+        }
+
+        function startNewChat() {
+            window.location.href = "/";
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+        }
+
+        const ta = document.getElementById('user_input');
+        ta.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (this.value.trim() !== '') {
+                    showLoading();
+                    document.getElementById('interaction-form').submit();
+                }
+            }
+        });
+
+        function showLoading() {
+            const hero = document.getElementById('welcome-hero');
+            if (hero) hero.style.display = 'none';
+            const btn = document.getElementById('send-button');
+            btn.disabled = true;
+            btn.style.opacity = '0.4';
+        }
+
+        function copyText(btn) {
+            const bubble = btn.closest('.turn-body').querySelector('.ai-text-bubble');
+            navigator.clipboard.writeText(bubble.innerText).then(() => {
+                btn.innerText = "✓ Copied";
+                setTimeout(() => btn.innerText = "📋 Copy", 2000);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const scrollContainer = document.getElementById('chat-scroll');
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        });
+
+        function evaluateQuiz(e) {
+            e.preventDefault();
+            let score = 0;
+            const cards = document.querySelectorAll('.quiz-card');
+
+            cards.forEach(card => {
+                const correct = card.getAttribute('data-correct').trim();
+                const selected = card.querySelector('input[type="radio"]:checked');
+                const banner = card.querySelector('.feedback-banner');
+                const explanation = card.querySelector('.explanation-box');
+
+                banner.classList.remove('hidden', 'banner-correct', 'banner-wrong');
+
+                if (selected && selected.value.trim() === correct) {
+                    score++;
+                    banner.classList.add('banner-correct');
+                    banner.innerText = "✓ Correct Answer";
+                } else {
+                    banner.classList.add('banner-wrong');
+                    banner.innerText = "✗ Incorrect. Correct answer: " + correct;
+                }
+
+                if (explanation) explanation.classList.remove('hidden');
+            });
+
+            const badge = document.getElementById('score-badge');
+            badge.innerText = `Score: ${score} / ${cards.length}`;
+            badge.className = score === cards.length ? "score-pill score-perfect" : "score-pill score-done";
+            document.getElementById('quiz-btn').disabled = true;
+            document.getElementById('quiz-btn').innerText = "Assessment Evaluated";
+        }
+    </script>
+</body>
+</html>
